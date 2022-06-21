@@ -1,4 +1,4 @@
-import { Resolver, Mutation, InputType, Field, Arg, Ctx, ObjectType } from 'type-graphql'
+import { Resolver, Mutation, InputType, Field, Arg, Ctx, ObjectType, Query } from 'type-graphql'
 import argon2 from 'argon2'
 import { MyContext } from 'src/types'
 import { User } from '../entities/User'
@@ -36,11 +36,25 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+    @Query(()=> User, {nullable: true})
+    async me(@Ctx() {req, em}: MyContext) {
+        const session = req.session
+        if (!session.userId) {
+            return null
+        }
+
+        const user = await em.findOne(User, session.userId)
+        return user;
+    }
+
+
+
+
     //the way you tell graphql what type of array you want to return is by writing what it is in the brackets - like posts below.
-    @Mutation(() => UserResponse)
+    @Mutation(() => UserResponse) 
     async register(
         @Arg('options') options: UsernamePasswordInput,
-        @Ctx() {em}: MyContext
+        @Ctx() {em, req}: MyContext
     ): Promise<UserResponse> {
         if (options.username.length <= 2) {
             return {
@@ -74,6 +88,13 @@ export class UserResolver {
                 }
             }
         }
+
+        //store user id session
+        //this is going to set the cookie on the user
+        //and keep them login
+        //login successful
+        req.session!.userId = user.id
+
         return { user};
     }
 

@@ -12,6 +12,7 @@ import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import { MyContext } from "./types";
+import cors from 'cors'
 
 const main = async () => {
     const orm = await MikroORM.init(microConfig);
@@ -22,10 +23,17 @@ const main = async () => {
     const RedisStore = connectRedis(session);
     const redisClient = redis.createClient();
 
+    app.use(cors({
+        origin: 'http://localhost:3000',
+        credentials:true
+    }))
+
+
     app.use(
         session({
             name: "qid",
             store: new RedisStore({
+                // @ts-ignore
                 client: redisClient,
                 disableTouch: true,
             }),

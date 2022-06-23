@@ -51,7 +51,7 @@ export class UserResolver {
 
 
     //the way you tell graphql what type of array you want to return is by writing what it is in the brackets - like posts below.
-    @Mutation(() => UserResponse) 
+    @Mutation(() => UserResponse)
     async register(
         @Arg('options') options: UsernamePasswordInput,
         @Ctx() {em, req}: MyContext

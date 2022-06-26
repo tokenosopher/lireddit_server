@@ -2,6 +2,7 @@ import { Resolver, Mutation, InputType, Field, Arg, Ctx, ObjectType, Query } fro
 import argon2 from 'argon2'
 import { MyContext } from 'src/types'
 import { User } from '../entities/User'
+import { COOKIE_NAME } from '../constants'
 
 
 //a different way of getting the arguments:
@@ -127,5 +128,22 @@ export class UserResolver {
         req.session!.userId = user.id
 
         return {user};
+    }
+
+    //
+    @Mutation(() => Boolean)
+    logout(@Ctx() {req, res}: MyContext) {
+        return new Promise ((resolve) => {
+            req.session.destroy(err => {
+                //this clears the cookie
+                res.clearCookie(COOKIE_NAME)
+                if (err) {
+                    console.log(err)
+                    resolve(false)
+                    return
+                }
+                resolve(true)
+            })
+        })
     }
 }

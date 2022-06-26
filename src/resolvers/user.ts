@@ -1,21 +1,11 @@
-import { Resolver, Mutation, InputType, Field, Arg, Ctx, ObjectType, Query } from 'type-graphql'
+import {Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver} from 'type-graphql'
 import argon2 from 'argon2'
-import { MyContext } from 'src/types'
-import { User } from '../entities/User'
-import { COOKIE_NAME } from '../constants'
+import {MyContext} from 'src/types'
+import {User} from '../entities/User'
+import {COOKIE_NAME} from '../constants'
+import { UsernamePasswordInput } from './usernamePasswordInput'
+import { validateRegister } from '../util/validateRegister'
 
-
-//a different way of getting the arguments:
-//the good thing about this is that you can reuse it across the different mutations, like how we did it here with register and login - we used the same input type.
-@InputType()
-class UsernamePasswordInput {
-    @Field()
-    username: string
-    @Field()
-    email: string
-    @Field()
-    password: string
-}
 
 @ObjectType()
 class FieldError {
@@ -59,32 +49,12 @@ export class UserResolver {
         @Arg('options') options: UsernamePasswordInput,
         @Ctx() {em, req}: MyContext
     ): Promise<UserResponse> {
-        if (options.username.length <= 2) {
-            return {
-                errors: [{
-                    field: 'username',
-                    message: 'username must be at least 3 characters'
-                }]
-            }
-        }
 
-        if (options.email.includes('@')) {
-            return {
-                errors: [{
-                    field: 'email',
-                    message: 'not a valid email'
-                }]
-            }
+        const response = validateRegister(options)
+        if (response) {
+            return response;
         }
-
-        if (options.password.length <= 2) {
-            return {
-                errors: [{
-                    field: 'password',
-                    message: 'password must be at least 3 characters'
-                }]
-            }
-        }
+        
 
         const hashedPassword = await argon2.hash(options.password)
         const user = em.create(User, {username: options.username, email: options.email, password: hashedPassword})

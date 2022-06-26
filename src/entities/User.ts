@@ -22,6 +22,10 @@ export class User {
     @Property({type: "text", unique: true}) //a unique property.
     username!: string;
 
+    @Field()
+    @Property({type: "text", unique: true}) //a unique property.
+    email!: string;
+
     //by removing the field property, it will not be query-able.
     @Property({type: "text"}) //a unique property.
     password!: string;

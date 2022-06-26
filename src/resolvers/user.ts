@@ -12,6 +12,8 @@ class UsernamePasswordInput {
     @Field()
     username: string
     @Field()
+    email: string
+    @Field()
     password: string
 }
 
@@ -66,6 +68,15 @@ export class UserResolver {
             }
         }
 
+        if (options.email.includes('@')) {
+            return {
+                errors: [{
+                    field: 'email',
+                    message: 'not a valid email'
+                }]
+            }
+        }
+
         if (options.password.length <= 2) {
             return {
                 errors: [{
@@ -76,7 +87,7 @@ export class UserResolver {
         }
 
         const hashedPassword = await argon2.hash(options.password)
-        const user = em.create(User, {username: options.username, password: hashedPassword})
+        const user = em.create(User, {username: options.username, email: options.email, password: hashedPassword})
         try {
             await em.persistAndFlush(user)
         } catch (err) {

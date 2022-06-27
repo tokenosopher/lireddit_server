@@ -13,6 +13,7 @@ import { User } from "../entities/User";
 import { COOKIE_NAME } from "../constants";
 import { UsernamePasswordInput } from "./usernamePasswordInput";
 import { validateRegister } from "../util/validateRegister";
+import { sendEmail } from "../util/sendEmail";
 
 @ObjectType()
 class FieldError {
@@ -35,6 +36,24 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Mutation(() => Boolean)
+  async fogotPassword(@Arg("email") email: string,
+                      @Ctx() { em }: MyContext
+                      ) {
+    const user = await em.findOne(User, { email})
+    if (!user) {
+      // you want to return true so as to not let hackers fish the address:
+      return true;
+    }
+
+    const token= "40893jh543p89439"
+
+    await sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">reset password</a>`);
+
+
+    return true;
+  }
+
   @Query(() => User, { nullable: true })
   async me(@Ctx() { req, em }: MyContext) {
     const session = req.session;
@@ -54,7 +73,7 @@ export class UserResolver {
   ): Promise<UserResponse> {
     const errors = validateRegister(options);
     if (errors) {
-      return {errors};
+      return { errors };
     }
 
     const hashedPassword = await argon2.hash(options.password);

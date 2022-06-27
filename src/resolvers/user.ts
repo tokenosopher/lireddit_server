@@ -43,7 +43,10 @@ export class UserResolver {
     @Arg("newPassword") newPassword: string,
     @Ctx() { em, redis, req }: MyContext
   ): Promise<UserResponse> {
-    const userId = await redis.get(FORGET_PASSWORD_PREFIX + token);
+
+    const key =  FORGET_PASSWORD_PREFIX + token;
+
+    const userId = await redis.get(key);
     if (!userId) {
       return {
         errors: [
@@ -80,7 +83,7 @@ export class UserResolver {
     const hashedPassword = await argon2.hash(newPassword);
     user.password = hashedPassword;
     await em.persistAndFlush(user);
-    // await redis.del(FORGET_PASSWORD_PREFIX + token);
+    await redis.del(key);
 
     //login the user:
     req.session!.userId = user.id;
@@ -90,15 +93,18 @@ export class UserResolver {
   }
 
   @Mutation(() => Boolean)
-  async fogotPassword(
+  async forgotPassword(
     @Arg("email") email: string,
     @Ctx() { em, redis }: MyContext
   ) {
     const user = await em.findOne(User, { email });
     if (!user) {
       // you want to return true so as to not let hackers fish the address:
+      console.log("email is" + email);
       return true;
     }
+
+    console.log(user)
 
     const token = v4();
 

@@ -10,10 +10,11 @@ import {
 import argon2 from "argon2";
 import { MyContext } from "src/types";
 import { User } from "../entities/User";
-import { COOKIE_NAME } from "../constants";
+import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
 import { UsernamePasswordInput } from "./usernamePasswordInput";
 import { validateRegister } from "../util/validateRegister";
 import { sendEmail } from "../util/sendEmail";
+import { v4 } from "uuid";
 
 @ObjectType()
 class FieldError {
@@ -36,20 +37,82 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Arg("token") token: string,
+    @Arg("newPassword") newPassword: string,
+    @Ctx() { em, redis, req }: MyContext
+  ): Promise<UserResponse> {
+    const userId = await redis.get(FORGET_PASSWORD_PREFIX + token);
+    if (!userId) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "token expired",
+          },
+        ],
+      };
+    }
+
+    if (newPassword.length < 2) {
+      return {
+        errors: [
+          {
+            field: "newPassword",
+            message: "password must be at least 2 characters",
+          },
+        ],
+      };
+    }
+
+    const user = await em.findOne(User, { id: parseInt(userId) });
+    if (!user) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "user no longer exists",
+          },
+        ],
+      };
+    }
+    const hashedPassword = await argon2.hash(newPassword);
+    user.password = hashedPassword;
+    await em.persistAndFlush(user);
+    // await redis.del(FORGET_PASSWORD_PREFIX + token);
+
+    //login the user:
+    req.session!.userId = user.id;
+
+
+    return { user };
+  }
+
   @Mutation(() => Boolean)
-  async fogotPassword(@Arg("email") email: string,
-                      @Ctx() { em }: MyContext
-                      ) {
-    const user = await em.findOne(User, { email})
+  async fogotPassword(
+    @Arg("email") email: string,
+    @Ctx() { em, redis }: MyContext
+  ) {
+    const user = await em.findOne(User, { email });
     if (!user) {
       // you want to return true so as to not let hackers fish the address:
       return true;
     }
 
-    const token= "40893jh543p89439"
+    const token = v4();
 
-    await sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">reset password</a>`);
+    await redis.set(
+      FORGET_PASSWORD_PREFIX + token,
+      user.id,
+      "EX",
+      1000 * 60 * 60 * 24 * 3
+    ); // 3 days
 
+    await sendEmail(
+      email,
+      `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
+    );
 
     return true;
   }

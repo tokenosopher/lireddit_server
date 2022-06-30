@@ -1,32 +1,37 @@
-import { Entity, OptionalProps, PrimaryKey, Property } from "@mikro-orm/core";
-import {Field, Int, ObjectType } from "type-graphql";
+import { Field, Int, ObjectType } from "type-graphql";
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 
 @ObjectType()
 @Entity()
-export class User {
-    [OptionalProps]?: 'updatedAt' | 'createdAt';
+export class User extends BaseEntity {
+  @Field(() => Int)
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-    @Field(() => Int)
-    @PrimaryKey()
-    id!: number;
+  @Field(() => String)
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @Field(() => String)
-    @Property({type: "date"})
-    createdAt = new Date();
+  @Field(() => String)
+  @UpdateDateColumn()
+  updatedAt: Date;
 
-    @Field(() => String)
-    @Property({ type: "date", onUpdate: () => new Date() })
-    updatedAt = new Date();
+  @Field()
+  @Column({ unique: true }) //a unique property.
+  username!: string;
 
-    @Field()
-    @Property({type: "text", unique: true}) //a unique property.
-    username!: string;
+  @Field()
+  @Column({ unique: true }) //a unique property.
+  email!: string;
 
-    @Field()
-    @Property({type: "text", unique: true}) //a unique property.
-    email!: string;
-
-    //by removing the field property, it will not be query-able.
-    @Property({type: "text"}) //a unique property.
-    password!: string;
+  //by removing the field property, it will not be query-able.
+  @Column({ unique: true }) //a unique property.
+  password!: string;
 }

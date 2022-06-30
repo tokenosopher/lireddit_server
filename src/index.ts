@@ -15,14 +15,14 @@ import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 
 const main = async () => {
-  const conn = await createConnection({
+  await createConnection({
     type: "postgres",
     database: "lireddit2",
     username: "postgres",
     password: "postgres",
     logging: true,
     synchronize: true, //this is to create the tables without needing to do migrations
-    entities: [Post, User]
+    entities: [Post, User],
   });
 
   const app = express();
@@ -55,7 +55,7 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({req, res, redis }),
+    context: ({ req, res }): MyContext => ({ req, res, redis }),
   });
 
   apolloServer.applyMiddleware({

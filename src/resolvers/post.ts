@@ -1,6 +1,26 @@
-import { Resolver, Query, Ctx, Arg, Int, Mutation } from "type-graphql";
+import {
+  Resolver,
+  Query,
+  Ctx,
+  Arg,
+  Int,
+  Mutation,
+  InputType,
+  Field,
+  UseMiddleware,
+} from "type-graphql";
 import { Post } from "../entities/Post";
 import { MyContext } from "../types";
+import { isAuth } from "../middleware/isAuth";
+
+@InputType()
+class PostInput {
+  @Field()
+  title: string;
+
+  @Field()
+  text: string;
+}
 
 @Resolver()
 export class PostResolver {
@@ -17,9 +37,16 @@ export class PostResolver {
   }
 
   @Mutation(() => Post)
-  async createPost(@Arg("title", () => String) title: string): Promise<Post> {
+  @UseMiddleware(isAuth)
+  async createPost(
+    @Arg("input") input: PostInput,
+    @Ctx() { req }: MyContext
+  ): Promise<Post> {
     //runs 2 sql queries, one to get the user, and one to create the post
-    return Post.create({ title }).save();
+    return Post.create({
+      ...input,
+      creatorId: req.session.userId,
+    }).save();
   }
 
   @Mutation(() => Post, { nullable: true })
@@ -40,7 +67,7 @@ export class PostResolver {
   @Mutation(() => Boolean) //this typescript type needs to match the what's in the Promise type.
   async deletePost(
     @Arg("id", () => Int) id: number,
-    @Ctx() { }: MyContext
+    @Ctx() {}: MyContext
   ): Promise<boolean> {
     await Post.delete({ id });
     return true;

@@ -16,7 +16,7 @@ import { User } from "./entities/User";
 import path from "path";
 
 const main = async () => {
-  await createConnection({
+  const conn = await createConnection({
     type: "postgres",
     database: "lireddit2",
     username: "postgres",
@@ -26,6 +26,10 @@ const main = async () => {
     migrations: [path.join(__dirname, "./migrations/*")],
     entities: [Post, User],
   });
+
+  await conn.runMigrations()
+
+  // await Post.delete({});
 
   const app = express();
 

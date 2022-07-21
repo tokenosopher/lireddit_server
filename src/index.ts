@@ -15,13 +15,12 @@ import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 import path from "path";
 import { Updoot } from "./entities/Updoot";
+import "dotenv-safe/config";
 
 const main = async () => {
   const conn = await createConnection({
     type: "postgres",
-    database: "lireddit2",
-    username: "postgres",
-    password: "postgres",
+    url: process.env.DATABASE_URL,
     logging: true,
     synchronize: true, //this is to create the tables without needing to do migrations,
     migrations: [path.join(__dirname, "./migrations/*")],
@@ -35,7 +34,7 @@ const main = async () => {
   const app = express();
 
   const RedisStore = connectRedis(session);
-  const redis = new Redis();
+  const redis = new Redis(process.env.REDIS_URL);
 
   app.use(
     session({
@@ -52,7 +51,7 @@ const main = async () => {
         secure: __prod__, // cookie only works in https
       },
       saveUninitialized: false,
-      secret: "qowiueojwojfalksdjoqiwueo",
+      secret: process.env.SESSION_SECRET,
       resave: false,
     })
   );
@@ -73,8 +72,8 @@ const main = async () => {
     },
   });
 
-  app.listen(4000, () => {
-    console.log("server started on localhost:4000");
+  app.listen(parseInt(process.env.PORT), () => {
+    console.log("server started on localhost:" + process.env.PORT);
   });
 };
 
